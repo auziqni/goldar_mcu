@@ -153,6 +153,7 @@ void motorMove(int command)
   {
   case 0:
     Serial.println("Close Tray Full");
+    closeFull = false;
     while (!closeFull)
     {
       checkTrayCLose();
@@ -164,9 +165,18 @@ void motorMove(int command)
     if (closeFull)
     {
       Serial.println("Open Tray Full");
-      motor.stepMotor(1200, true); // TODO: HARUSNYA 12000
+      motor.stepMotor(12000, true); // TODO: HARUSNYA 12000
       hasSample = !hasSample;
-      hasSample ? Serial.println("sample dimasukkan") : Serial.println("Sample dikeluarkan");
+      if (hasSample)
+      {
+        Serial.println("sample dimasukkan");
+      }
+      else
+      {
+        Serial.println("Sample dikeluarkan");
+        GolonganDarah = "";
+        kodeGolonganDarah = 0;
+      }
     }
     break;
 
@@ -174,7 +184,7 @@ void motorMove(int command)
     if (closeFull)
     {
       Serial.println("Open Tray half");
-      motor.stepMotor(500, true); // TODO: HARUSNYA 5000
+      motor.stepMotor(5000, true); // TODO: HARUSNYA 5000
     }
 
   default:
@@ -407,6 +417,8 @@ void process()
       processStatus = false;
       stirring = false;
       getGoldar();
+
+      motorMove(0);
       Serial.println("Process done");
     }
 
@@ -534,9 +546,18 @@ void handleCommand(char command)
     break;
   case 'D':                        // Jika bt1.val == 0 (bt1 dilepas)
     Serial.println("show button"); // Debug message
+
+    if (kodeGolonganDarah != 0)
     {
-      // print(GolonganDarah);
-      delay(2000);
+      // TODO : pRINT LCD
+      myDFPlayer.play(kodeGolonganDarah);
+      Serial1.print("t0.txt=\"");
+      Serial1.println(GolonganDarah);
+      Serial1.print("\"");
+      Serial1.write(0xff);
+      Serial1.write(0xff);
+      Serial1.write(0xff);
+      delay(3000);
     }
     break;
 
@@ -545,7 +566,7 @@ void handleCommand(char command)
     if (kodeGolonganDarah != 0)
     {
       print(GolonganDarah);
-      delay(2000);
+      delay(3000);
     }
     break;
 
@@ -624,6 +645,10 @@ void setup()
   getReady();
   motorMove(0);
 
+  startStatus = true;
+  blinkNotification(greenLed, 1);
+  delay(2000);
+
   // tell the world device ready
   Serial.println("All System Ready");
   printer.setSize('M');
@@ -634,10 +659,17 @@ void setup()
 
 void loop()
 {
-  // check serial
-  if (Serial.available()) // TODO: ganti ke Serial1
+  // Baca serial Dari LCD
+  if (Serial1.available())
   {
-    char command = Serial.read(); // TODO: ganti ke Serial1
+    char command = Serial1.read();
+    Serial.println(command);
+    handleCommand(command);
+  }
+  // Baca serial Dari LCD
+  if (Serial.available())
+  {
+    char command = Serial.read();
     Serial.println(command);
     handleCommand(command);
   }
