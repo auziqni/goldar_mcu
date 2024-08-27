@@ -416,9 +416,11 @@ void process()
       timerProcess = currentTimerProcess;
       processStatus = false;
       stirring = false;
-      getGoldar();
-
+      servoMounting.write(180); // servo umount
+      delay(200);
       motorMove(0);
+      getGoldar();
+      delay(2000); // TODO: atur sesuai kebutuhan
       Serial.println("Process done");
     }
 
@@ -521,31 +523,34 @@ void handleCommand(char command)
 
   case 'A':                        // Jika bt0.val == 1 (bt0 ditekan)
     Serial.println("open button"); // Debug message
-    motorMove(1);                  // open tray full
+    Serial.println(millis());
+    motorMove(1); // open tray full
     blinkNotification(greenLed, 2);
     break;
 
   case 'B':                         // Jika bt0.val == 0 (bt0 dilepas)
     Serial.println("close button"); // Debug message
-    motorMove(0);                   // close tray full
+    Serial.println(millis());
+    motorMove(0); // close tray full
     blinkNotification(greenLed, 2);
     break;
 
   case 'C':                       // Jika bt1.val == 1 (bt1 ditekan)
     Serial.println("run button"); // Debug message
-    motorMove(2);                 // run tray half
-    servoMounting.write(90);      // servo mount
+    Serial.println(millis());
+    motorMove(2);            // run tray half
+    servoMounting.write(90); // servo mount
     delay(200);
     processStatus = true;
     stirring = true;
     process();
-    servoMounting.write(180); // servo umount
 
     // baca sample
     blinkNotification(greenLed, 2);
     break;
   case 'D':                        // Jika bt1.val == 0 (bt1 dilepas)
     Serial.println("show button"); // Debug message
+    Serial.println(millis());
 
     if (kodeGolonganDarah != 0)
     {
@@ -563,6 +568,7 @@ void handleCommand(char command)
 
   case 'E':                         // Jika bt1.val == 0 (bt1 dilepas)
     Serial.println("print button"); // Debug message
+    Serial.println(millis());
     if (kodeGolonganDarah != 0)
     {
       print(GolonganDarah);
