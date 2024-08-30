@@ -8,6 +8,7 @@ start -> [init] -> open -> close -> run
 #include <SoftwareSerial.h>
 #include "Adafruit_Thermal.h"
 #include <DFRobotDFPlayerMini.h>
+#define MAX_ITERATIONS 10
 
 // Global variable and declaration
 //-----------------------------------------------------------------------------------------------
@@ -60,7 +61,7 @@ String GolonganDarah = "";
 int kodeGolonganDarah = 0;
 bool startStatus = false, processStatus = false;
 unsigned int currentTimer = 0, timer = 0, timerinterval = 1000;
-unsigned int currentTimerProcess = 0, timerProcess = 0, processTime = 5000; // TODO: atur sesuai kebutuhan
+unsigned int currentTimerProcess = 0, timerProcess = 0, processTime = 8000; // TODO: atur sesuai kebutuhan
 
 byte errorByte = 0;
 
@@ -84,6 +85,18 @@ int servoStirPos = 0;
 int ldrA1, ldrA2, ldrA3, ldrA4, ldrA5;
 int ldrB1, ldrB2, ldrB3, ldrB4, ldrB5;
 int ldrC1, ldrC2, ldrC3, ldrC4, ldrC5;
+
+int rerataAkhirLDRTray1 = 0;
+int rerataAkhirLDRTray2 = 0;
+int rerataAkhirLDRTray3 = 0;
+
+int nilaitengahldr1 = 549;
+int nilaitengahldr2 = 427;
+int nilaitengahldr3 = 488;
+
+bool LDR1_terang = false;
+bool LDR2_terang = false;
+bool LDR3_terang = false;
 
 // global variable printer
 SoftwareSerial mySerial(RX_PIN, TX_PIN); // RX, TX
@@ -165,7 +178,7 @@ void motorMove(int command)
     if (closeFull)
     {
       Serial.println("Open Tray Full");
-      motor.stepMotor(12000, true); // TODO: HARUSNYA 12000
+      motor.stepMotor(14000, true); // TODO: HARUSNYA 12000
       hasSample = !hasSample;
       if (hasSample)
       {
@@ -202,21 +215,44 @@ void initServo()
 
 void readldr()
 {
-  ldrA1 = analogRead(ldrA1_pin);
-  ldrA2 = analogRead(ldrA2_pin);
-  ldrA3 = analogRead(ldrA3_pin);
-  ldrA4 = analogRead(ldrA4_pin);
-  ldrA5 = analogRead(ldrA5_pin);
-  ldrB1 = analogRead(ldrB1_pin);
-  ldrB2 = analogRead(ldrB2_pin);
-  ldrB3 = analogRead(ldrB3_pin);
-  ldrB4 = analogRead(ldrB4_pin);
-  ldrB5 = analogRead(ldrB5_pin);
-  ldrC1 = analogRead(ldrC1_pin);
-  ldrC2 = analogRead(ldrC2_pin);
-  ldrC3 = analogRead(ldrC3_pin);
-  ldrC4 = analogRead(ldrC4_pin);
-  ldrC5 = analogRead(ldrC5_pin);
+  int rerataAwalLDRTray1 = 0;
+  int rerataAwalLDRTray2 = 0;
+  int rerataAwalLDRTray3 = 0;
+
+  for (int i = 0; i < MAX_ITERATIONS; i++)
+  {
+    // Serial.print("Iterasi ke-");
+    // Serial.println(i + 1);
+    rerataAwalLDRTray1 += analogRead(ldrA1_pin);
+    rerataAwalLDRTray1 += analogRead(ldrA2_pin);
+    rerataAwalLDRTray1 += analogRead(ldrA3_pin);
+    rerataAwalLDRTray1 += analogRead(ldrA4_pin);
+    rerataAwalLDRTray1 += analogRead(ldrA5_pin);
+
+    rerataAwalLDRTray2 += analogRead(ldrB1_pin);
+    rerataAwalLDRTray2 += analogRead(ldrB2_pin);
+    rerataAwalLDRTray2 += analogRead(ldrB3_pin);
+    rerataAwalLDRTray2 += analogRead(ldrB4_pin);
+    rerataAwalLDRTray2 += analogRead(ldrB5_pin);
+
+    rerataAwalLDRTray3 += analogRead(ldrC1_pin);
+    rerataAwalLDRTray3 += analogRead(ldrC2_pin);
+    rerataAwalLDRTray3 += analogRead(ldrC3_pin);
+    rerataAwalLDRTray3 += analogRead(ldrC4_pin);
+    rerataAwalLDRTray3 += analogRead(ldrC5_pin);
+
+    rerataAkhirLDRTray1 += rerataAwalLDRTray1 / 5;
+    rerataAkhirLDRTray2 += rerataAwalLDRTray2 / 5;
+    rerataAkhirLDRTray3 += rerataAwalLDRTray3 / 5;
+
+    rerataAwalLDRTray1 = 0;
+    rerataAwalLDRTray2 = 0;
+    rerataAwalLDRTray3 = 0;
+  }
+
+  rerataAkhirLDRTray1 = rerataAkhirLDRTray1 / MAX_ITERATIONS;
+  rerataAkhirLDRTray2 = rerataAkhirLDRTray2 / MAX_ITERATIONS;
+  rerataAkhirLDRTray3 = rerataAkhirLDRTray3 / MAX_ITERATIONS;
 }
 
 void initPrinter()
@@ -266,7 +302,7 @@ void initSound()
   }
 
   Serial.println(F("DFPlayer Mini online."));
-  myDFPlayer.play(8); // a+
+  myDFPlayer.play(1); // suara alat siap
 
   myDFPlayer.volume(30); // Set volume value. From 0 to 30
 }
@@ -307,92 +343,85 @@ float lpf_get_filter(lpf_config_t *lpf, float input)
 
 void getGoldar()
 {
-  int nilaiSensor1 = 0, nilaiSensor2 = 0, nilaiSensor3 = 0;
-
-  nilaiSensor1 += ldrA1;
-  nilaiSensor1 += ldrA2;
-  nilaiSensor1 += ldrA3;
-  nilaiSensor1 += ldrA4;
-  nilaiSensor1 += ldrA5;
-
-  nilaiSensor2 += ldrB1;
-  nilaiSensor2 += ldrB2;
-  nilaiSensor2 += ldrB3;
-  nilaiSensor2 += ldrB4;
-  nilaiSensor2 += ldrB5;
-
-  nilaiSensor3 += ldrC1;
-  nilaiSensor3 += ldrC2;
-  nilaiSensor3 += ldrC3;
-  nilaiSensor3 += ldrC4;
-  nilaiSensor3 += ldrC5;
-
-  // Hitung rerata dari pembacaan 5 LDR
-  nilaiSensor1 = nilaiSensor1 / 5;
-  int nilaiTerfilterLDR1 = (int)lpf_get_filter(&filterLDR1, nilaiSensor1);
-  Serial.print("Sensor1:");
-  Serial.print(nilaiSensor1);
-  Serial.print(",");
-  Serial.print("\tFilter:");
-  Serial.print(nilaiTerfilterLDR1);
-
-  nilaiSensor2 = nilaiSensor2 / 5;
-  int nilaiTerfilterLDR2 = (int)lpf_get_filter(&filterLDR2, nilaiSensor2);
-  Serial.print("\tSensor2:");
-  Serial.print(nilaiSensor2);
-  Serial.print(",");
-  Serial.print("\tFilter:");
-  Serial.print(nilaiTerfilterLDR2);
-
-  nilaiSensor3 = nilaiSensor3 / 5;
-  int nilaiTerfilterLDR3 = (int)lpf_get_filter(&filterLDR3, nilaiSensor3);
-  Serial.print("\tSensor3:");
-  Serial.print(nilaiSensor3);
-  Serial.print(",");
-  Serial.print("\tFilter:");
-  Serial.print(nilaiTerfilterLDR3);
-  Serial.print("\n");
-
-  if (nilaiTerfilterLDR1 < 350 && nilaiTerfilterLDR2 > 500 && nilaiTerfilterLDR3 > 100)
+  Serial.print("\nnilai ADC LDR Tray 1 : ");
+  Serial.print(rerataAkhirLDRTray1);
+  if (rerataAkhirLDRTray1 < nilaitengahldr1)
   {
+    Serial.println(" || gelap");
+    LDR1_terang = false;
+  }
+  else
+  {
+    Serial.println(" || terang");
+    LDR1_terang = true;
+  }
 
-    GolonganDarah = "A+";
-    kodeGolonganDarah = 1;
-  }
-  else if (nilaiTerfilterLDR1 < 350 && nilaiTerfilterLDR2 > 500 && nilaiTerfilterLDR3 < 100)
+  Serial.print("nilai ADC LDR Tray 2 : ");
+  Serial.print(rerataAkhirLDRTray2);
+  if (rerataAkhirLDRTray2 < nilaitengahldr2)
   {
-    GolonganDarah = "A-";
-    kodeGolonganDarah = 2;
+    Serial.println(" || gelap");
+    LDR2_terang = false;
   }
-  else if (nilaiTerfilterLDR1 > 500 && nilaiTerfilterLDR2 < 300 && nilaiTerfilterLDR3 > 300)
+  else
   {
-    GolonganDarah = "B+";
-    kodeGolonganDarah = 3;
+    Serial.println(" || terang");
+    LDR2_terang = true;
   }
-  else if (nilaiTerfilterLDR1 > 500 && nilaiTerfilterLDR2 < 300 && nilaiTerfilterLDR3 < 300)
+
+  Serial.print("nilai ADC LDR Tray 3 : ");
+  Serial.print(rerataAkhirLDRTray3);
+  if (rerataAkhirLDRTray3 < nilaitengahldr3)
   {
-    GolonganDarah = "B-";
-    kodeGolonganDarah = 4;
+    Serial.println(" || gelap");
+    LDR3_terang = false;
   }
-  else if (nilaiTerfilterLDR1 > 350 && nilaiTerfilterLDR2 > 350 && nilaiTerfilterLDR3 > 100)
+  else
+  {
+    Serial.println(" || terang");
+    LDR3_terang = true;
+  }
+
+  if (LDR1_terang && LDR2_terang && LDR3_terang) // 111
   {
     GolonganDarah = "AB+";
-    kodeGolonganDarah = 5;
-  }
-  else if (nilaiTerfilterLDR1 > 350 && nilaiTerfilterLDR2 > 350 && nilaiTerfilterLDR3 < 100)
-  {
-    GolonganDarah = "AB-";
     kodeGolonganDarah = 6;
   }
-  else if (nilaiTerfilterLDR1 < 350 && nilaiTerfilterLDR2 < 350 && nilaiTerfilterLDR3 > 300)
+  if (LDR1_terang && LDR2_terang && !LDR3_terang) // 110
   {
-    GolonganDarah = "O+";
+    GolonganDarah = "AB-";
     kodeGolonganDarah = 7;
   }
-  else if (nilaiTerfilterLDR1 < 350 && nilaiTerfilterLDR2 < 350 && nilaiTerfilterLDR3 < 300)
+  if (LDR1_terang && !LDR2_terang && LDR3_terang) // 101
+  {
+    GolonganDarah = "A+";
+    kodeGolonganDarah = 2;
+  }
+  if (LDR1_terang && !LDR2_terang && !LDR3_terang) // 100
+  {
+    GolonganDarah = "A-";
+    kodeGolonganDarah = 3;
+  }
+
+  if (!LDR1_terang && LDR2_terang && LDR3_terang) // 011
+  {
+    GolonganDarah = "B+";
+    kodeGolonganDarah = 4;
+  }
+  if (!LDR1_terang && LDR2_terang && !LDR3_terang) // 010
+  {
+    GolonganDarah = "B-";
+    kodeGolonganDarah = 5;
+  }
+  if (!LDR1_terang && !LDR2_terang && LDR3_terang) // 001
+  {
+    GolonganDarah = "O+";
+    kodeGolonganDarah = 8;
+  }
+  if (!LDR1_terang && !LDR2_terang && !LDR3_terang) // 000
   {
     GolonganDarah = "O-";
-    kodeGolonganDarah = 2;
+    kodeGolonganDarah = 9;
   }
 
   Serial.print("Golongan Darah : ");
@@ -406,7 +435,6 @@ void process()
 
   while (processStatus)
   {
-    readldr();
     currentTimerProcess = millis();
     currentTimer = millis();
     currentTimerServo = millis();
@@ -417,56 +445,16 @@ void process()
       processStatus = false;
       stirring = false;
       servoMounting.write(180); // servo umount
+      motorMove(0);             // close tray full
+      readldr();                // baca ldr
+      getGoldar();              // get golongan darah
       delay(200);
-      motorMove(0);
-      getGoldar();
-      delay(2000); // TODO: atur sesuai kebutuhan
       Serial.println("Process done");
     }
 
     if ((currentTimer - timer) > timerinterval)
     {
       timer = currentTimer;
-      Serial.print("A: ");
-      Serial.print(ldrA1);
-      Serial.print("\t");
-      Serial.print(ldrA2);
-      Serial.print("\t");
-      Serial.print(ldrA3);
-      Serial.print("\t");
-      Serial.print(ldrA4);
-      Serial.print("\t");
-      Serial.print(ldrA5);
-      Serial.println();
-
-      // Menampilkan nilai ldr Kelompok B
-      Serial.print("B: ");
-      Serial.print(ldrB1);
-      Serial.print("\t");
-      Serial.print(ldrB2);
-      Serial.print("\t");
-      Serial.print(ldrB3);
-      Serial.print("\t");
-      Serial.print(ldrB4);
-      Serial.print("\t");
-      Serial.print(ldrB5);
-      Serial.println();
-      // Serial.print("\t|| ");
-
-      // Menampilkan nilai ldr Kelompok C
-      Serial.print("C: ");
-      Serial.print(ldrC1);
-      Serial.print("\t");
-      Serial.print(ldrC2);
-      Serial.print("\t");
-      Serial.print(ldrC3);
-      Serial.print("\t");
-      Serial.print(ldrC4);
-      Serial.print("\t");
-      Serial.print(ldrC5);
-      Serial.println();
-
-      Serial.println();
     }
 
     if (stirring && (currentTimerServo - timerServo) > timerIntervalServo)
@@ -537,16 +525,19 @@ void handleCommand(char command)
 
   case 'C':                       // Jika bt1.val == 1 (bt1 ditekan)
     Serial.println("run button"); // Debug message
-    Serial.println(millis());
-    motorMove(2);            // run tray half
-    servoMounting.write(90); // servo mount
-    delay(200);
-    processStatus = true;
-    stirring = true;
-    process();
+    if (hasSample)
+    {
+      Serial.println(millis());
+      motorMove(2);            // run tray half
+      servoMounting.write(90); // servo mount
+      delay(200);
+      processStatus = true;
+      stirring = true;
+      process();
 
-    // baca sample
-    blinkNotification(greenLed, 2);
+      // baca sample
+      blinkNotification(greenLed, 2);
+    }
     break;
   case 'D':                        // Jika bt1.val == 0 (bt1 dilepas)
     Serial.println("show button"); // Debug message
@@ -554,7 +545,6 @@ void handleCommand(char command)
 
     if (kodeGolonganDarah != 0)
     {
-      // TODO : pRINT LCD
       myDFPlayer.play(kodeGolonganDarah);
       Serial1.print("t0.txt=\"");
       Serial1.println(GolonganDarah);
@@ -577,7 +567,6 @@ void handleCommand(char command)
     break;
 
   default:
-    Serial.println("tidak ada tombol yang ditekan"); // Debug message
     break;
   }
 }
@@ -669,24 +658,29 @@ void loop()
   if (Serial1.available())
   {
     char command = Serial1.read();
-    Serial.println(command);
+    // Serial.println(command);
     handleCommand(command);
   }
   // Baca serial Dari LCD
   if (Serial.available())
   {
     char command = Serial.read();
-    Serial.println(command);
+    // Serial.println(command);
     handleCommand(command);
   }
 
   // function to read along
+  readldr();
+
   handleError();
   vavail();
   checkTrayCLose();
-  currentTimer = millis();
+  rerataAkhirLDRTray1 = 0;
+  rerataAkhirLDRTray2 = 0;
+  rerataAkhirLDRTray3 = 0;
 
   // fuction to run at interval
+  currentTimer = millis();
   if ((currentTimer - timer) > timerinterval)
   {
     timer = currentTimer;
